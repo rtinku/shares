@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">BluetoothAPI</string>
+    <string name="on_bluetooth">On Bluetooth</string>
+    <string name="discover">discover</string>
+    <string name="scan">Scan</string>
+    <string name="discoverable">Discoverable</string>
+    <string name="bluetooth_off">Bluetooth Off</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="send">Send</string>
+</resources>
