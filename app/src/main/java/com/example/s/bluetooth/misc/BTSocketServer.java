@@ -1,6 +1,7 @@
 package com.example.s.bluetooth.misc;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
@@ -14,41 +15,90 @@ public class BTSocketServer extends Thread {
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothSocket socket;
     private static final String NAME = "ABCD";
-    private UUID uuid = UUID.randomUUID();
+    private BluetoothDevice device;
+    private UUID uuid;
 
-    public BTSocketServer(BluetoothAdapter bluetoothAdapter) {
+    public BTSocketServer(BluetoothAdapter bluetoothAdapter, String uuid) {
         super(TAG);
         this.bluetoothAdapter = bluetoothAdapter;
+        this.uuid = UUID.fromString(uuid);
+
+
+        if (serverSocket == null) {
+            try {
+                Log.e(TAG, "BTSocketServer: " + uuid);
+                serverSocket = this.bluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, this.uuid);
+
+                Log.e(TAG, "BTSocketServer: "+serverSocket );
+
+            } catch (IOException e) {
+                Log.e(TAG, "run: " + e.getMessage());
+                e.printStackTrace();
+                cancel();
+            }
+        }
+
     }
 
 
     @Override
     public void run() {
-        super.run();
-        while (serverSocket == null) {
+
+        if (serverSocket != null) {
+           while (socket==null)
+           {
+               try {
+
+
+                   socket=serverSocket.accept();
+                   break;
+               } catch (IOException e)
+               {
+                   e.printStackTrace();
+                   Log.e(TAG, "run: "+e.getMessage() );
+                   cancel(); break;
+               }
+
+           }
+        }
+
+
+        if (socket != null) {
+            Log.e(TAG, "run: " + socket);
+            cancel();
+        }
+
+    }
+
+
+    public void cancel() {
+
+        Log.e(TAG, "cancel: "+socket  +" " +serverSocket);
+
+        if (socket != null) {
             try {
-                serverSocket = bluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, uuid);
+                socket.close();
             } catch (IOException e) {
-                Log.e(TAG, "run: " + e.getMessage());
                 e.printStackTrace();
+
+                Log.e(TAG, "cancel: " + e.getMessage());
             }
         }
 
 
         if (serverSocket != null) {
             try {
-
-              socket = serverSocket.accept();
-                Log.e(TAG, "run: "+socket );
-
+                serverSocket.close();
             } catch (IOException e) {
                 e.printStackTrace();
-                Log.e(TAG, "run: " + e.getMessage());
+
+                Log.e(TAG, "cancel: " + e.getMessage());
+
             }
         }
 
-    }
 
+    }
 
 
 }

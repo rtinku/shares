@@ -27,6 +27,7 @@ import com.example.s.bluetooth.misc.BTSocketServer;
 import com.example.s.bluetooth.receivers.BluetoothEventReceiver;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -36,7 +37,8 @@ import static android.app.Activity.RESULT_OK;
  * create an instance of this fragment.
  */
 public class BluetoothChatFragment extends Fragment implements MainActivity.ICommunicateWithFragment,
-        BluetoothEventReceiver.IFoundedBTDevices, BluetoothEventReceiver.IBTDevicesState {
+        BluetoothEventReceiver.IFoundedBTDevices, BluetoothEventReceiver.IBTDevicesState,
+        BluetoothEventReceiver.IEstablishChannel, BluetoothEventReceiver.IBTDisConnected, BluetoothEventReceiver.IBTConnected {
 
     private static final String TAG = "BluetoothChatFragment";
 
@@ -76,6 +78,11 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
 
         bluetoothEventReceiver.setFoundedBTDevices(this);
         bluetoothEventReceiver.setIbtDevicesState(this);
+        bluetoothEventReceiver.setiEstablishChannel(this);
+        bluetoothEventReceiver.setIbtDisConnected(this);
+        bluetoothEventReceiver.setIbtConnected(this);
+
+
         if (bluetoothAdapter == null) {
             Toast.makeText(context, "Bluetooth not support by Device", Toast.LENGTH_SHORT).show();
         } else {
@@ -100,6 +107,7 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
         IntentFilter CONNECTION_STATEintentFilter = new IntentFilter(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED);
         IntentFilter ConnectedStateintentFilter = new IntentFilter(BluetoothDevice.ACTION_ACL_CONNECTED);
         IntentFilter DisconnectedStateintentFilter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        IntentFilter BondintentFilter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 
         context.registerReceiver(bluetoothEventReceiver, DeviceFoundintentFilter);
         context.registerReceiver(bluetoothEventReceiver, StateintentFilter);
@@ -108,6 +116,7 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
         context.registerReceiver(bluetoothEventReceiver, CONNECTION_STATEintentFilter);
         context.registerReceiver(bluetoothEventReceiver, ConnectedStateintentFilter);
         context.registerReceiver(bluetoothEventReceiver, DisconnectedStateintentFilter);
+        context.registerReceiver(bluetoothEventReceiver, BondintentFilter);
     }
 
     @Override
@@ -152,10 +161,8 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
             }
         }
 
-        if (requestCode==REQUEST_BT_DISCOVERABLE)
-        {
-            if(resultCode==RESULT_OK)
-            {
+        if (requestCode == REQUEST_BT_DISCOVERABLE) {
+            if (resultCode == RESULT_OK) {
 
             }
         }
@@ -192,9 +199,9 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
                 Toast.makeText(context, "discover", Toast.LENGTH_SHORT).show();
 
                 if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
-                    Intent BTDiscoveralbe=new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-                    BTDiscoveralbe.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION,300);
-                    startActivityForResult(BTDiscoveralbe,REQUEST_BT_DISCOVERABLE);
+                    Intent BTDiscoveralbe = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+                    BTDiscoveralbe.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+                    startActivityForResult(BTDiscoveralbe, REQUEST_BT_DISCOVERABLE);
                 }
 
                 break;
@@ -219,11 +226,10 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
     public void onBTDevicesState(int state) {
 
         switch (state) {
-           
+
             case BluetoothAdapter.STATE_ON:
                 Log.e(TAG, "onBTDevicesState: on");
-                socketServer = new BTSocketServer(bluetoothAdapter);
-                socketServer.start();
+
                 break;
 
             case BluetoothAdapter.STATE_TURNING_OFF:
@@ -232,10 +238,36 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
                 if (socketServer != null && socketServer.isAlive()) {
                     Log.e(TAG, "onBTDevicesState: " + socketServer.isAlive());
                     Toast.makeText(context, "Service Stop Successfully..." + socketServer.isAlive(), Toast.LENGTH_SHORT).show();
-                    socketServer.interrupt();
+                    socketServer.cancel();
                 }
 
                 break;
+        }
+    }
+
+    @Override
+    public void onEstablishChannel(BluetoothDevice device) {
+
+    }
+
+    @Override
+    public void onBTConnected(String uuid)
+    {
+        Log.e(TAG, "onBTConnected: "+uuid );
+        if (uuid != null) {
+            socketServer = new BTSocketServer(bluetoothAdapter, uuid);
+            socketServer.start();
+        } else {
+            Log.e(TAG, "onBTConnected: not run");
+        }
+    }
+
+    @Override
+    public void onBTDisConnected() {
+
+        if (socketServer != null && socketServer.isAlive())
+        {
+            socketServer.cancel();
         }
     }
 }

@@ -6,9 +6,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcelable;
+import android.util.Log;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 public class BluetoothEventReceiver extends BroadcastReceiver {
 
@@ -17,6 +20,10 @@ public class BluetoothEventReceiver extends BroadcastReceiver {
     private Bundle bundle;
     private IFoundedBTDevices foundedBTDevices;
     private IBTDevicesState ibtDevicesState;
+    private IEstablishChannel iEstablishChannel;
+    private IBTConnected ibtConnected;
+    private IBTDisConnected ibtDisConnected;
+
 
     public void setFoundedBTDevices(IFoundedBTDevices foundedBTDevices) {
         this.foundedBTDevices = foundedBTDevices;
@@ -27,6 +34,19 @@ public class BluetoothEventReceiver extends BroadcastReceiver {
         this.ibtDevicesState = ibtDevicesState;
     }
 
+    public void setiEstablishChannel(IEstablishChannel iEstablishChannel) {
+        this.iEstablishChannel = iEstablishChannel;
+    }
+
+    public void setIbtConnected(IBTConnected ibtConnected) {
+        this.ibtConnected = ibtConnected;
+    }
+
+    public void setIbtDisConnected(IBTDisConnected ibtDisConnected) {
+        this.ibtDisConnected = ibtDisConnected;
+    }
+
+
     public interface IFoundedBTDevices {
         void onFoundBTDevices(ArrayList<BluetoothDevice> bluetoothDeviceArrayList);
     }
@@ -34,6 +54,21 @@ public class BluetoothEventReceiver extends BroadcastReceiver {
     public interface IBTDevicesState {
         void onBTDevicesState(int state);
     }
+
+
+    public interface IEstablishChannel {
+        void onEstablishChannel(BluetoothDevice device);
+    }
+
+
+    public interface IBTConnected {
+        void onBTConnected(String uuid);
+    }
+
+    public interface IBTDisConnected {
+        void onBTDisConnected();
+    }
+
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -63,15 +98,105 @@ public class BluetoothEventReceiver extends BroadcastReceiver {
                         bluetoothDeviceArrayList.add(bluetoothDevice);
                     }
 
+
+                    break;
+                case BluetoothDevice.ACTION_UUID:
+
+                    bundle = intent.getExtras();
+                    if (bundle != null) {
+                        UUID uuid = bundle.getParcelable(BluetoothDevice.EXTRA_UUID);
+
+                    }
+
                     break;
 
 
+                case BluetoothDevice.ACTION_BOND_STATE_CHANGED:
+                    bundle = intent.getExtras();
+                    if (bundle != null) {
+                        int state = bundle.getInt(BluetoothDevice.EXTRA_BOND_STATE);
+                        String val = "";
+                        switch (state) {
+                            case BluetoothDevice.BOND_NONE:
+                                val = "BOND_NONE";
+                                break;
+                            case BluetoothDevice.BOND_BONDING:
+                                val = "BOND_BONDING";
+                                break;
+                            case BluetoothDevice.BOND_BONDED:
+
+                                val = "BOND_BONDED";
+
+                              //  BluetoothDevice device = bundle.getParcelable(BluetoothDevice.EXTRA_DEVICE);
+
+                                /*Log.e(TAG, "onReceive: " + device);
+                                if (device != null && iEstablishChannel != null) {
+                                    device.fetchUuidsWithSdp();
+                                    UUID uuid = device.getUuids()[0].getUuid();
+                                    Log.e(TAG, "onReceive: " + uuid);
+                                    iEstablishChannel.onEstablishChannel(device);
+                                }*/
+
+
+
+                                bundle = intent.getExtras();
+                                if (bundle != null)
+                                {
+                                    //Parcelable [] device = bundle.getParcelableArray(BluetoothDevice.EXTRA_UUID);
+                                    BluetoothDevice device = bundle.getParcelable(BluetoothDevice.EXTRA_DEVICE);
+                                    Log.e(TAG, "onReceive:BOND_BONDED "+device +"  "+ibtConnected );
+
+                                    if (device != null && ibtConnected != null) {
+                                        device.fetchUuidsWithSdp();
+                                        UUID uuid = device.getUuids()[0].getUuid();
+                                        Log.e(TAG, "onReceive: BOND_BONDED uuid: " + uuid);
+                                        ibtConnected.onBTConnected(uuid.toString());
+                                    }
+                                }
+
+
+
+                                break;
+
+                        }
+
+                        Toast.makeText(context, val, Toast.LENGTH_SHORT).show();
+                    }
+
+                    break;
+
                 case BluetoothDevice.ACTION_ACL_CONNECTED:
                     Toast.makeText(context, "Connected....", Toast.LENGTH_SHORT).show();
+
+                    bundle = intent.getExtras();
+                    if (bundle != null)
+                    {
+                        Parcelable [] device = bundle.getParcelableArray(BluetoothDevice.EXTRA_UUID);
+
+                        Log.e(TAG, "onReceive:ACTION_ACL_CONNECTED "+device +"  "+ibtConnected );
+
+                        if (device != null && ibtConnected != null) {
+
+
+                            for(Parcelable p : device)
+                            {
+                                Log.e(TAG, "onReceive: "+p.toString() );
+                            }
+
+                            ibtConnected.onBTConnected(device[0].toString());
+                        }
+                    }
+
+
                     break;
 
                 case BluetoothDevice.ACTION_ACL_DISCONNECTED:
                     Toast.makeText(context, "Disconnected....", Toast.LENGTH_SHORT).show();
+
+                    if (ibtDisConnected != null) {
+                        ibtDisConnected.onBTDisConnected();
+                    }
+
                     break;
 
                 case BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED:
