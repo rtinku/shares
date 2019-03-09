@@ -100,11 +100,45 @@ public class BluetoothEventReceiver extends BroadcastReceiver {
 
 
                     break;
+
+                case BluetoothDevice.ACTION_PAIRING_REQUEST:
+                    /*bundle = intent.getExtras();
+                    if (bundle != null) {
+                        BluetoothDevice bluetoothDevice = bundle.getParcelable(BluetoothDevice.EXTRA_DEVICE);
+
+
+                        if (bluetoothDevice != null && ibtConnected != null) {
+
+//                            bluetoothDevice=BluetoothAdapter.getDefaultAdapter().getRemoteDevice(bluetoothDevice.getAddress());
+
+                            Log.e(TAG, "onReceive::: "+bluetoothDevice.getName() );
+                            Log.e(TAG, "onReceive::: "+bluetoothDevice.getAddress() );
+
+                            bluetoothDevice.fetchUuidsWithSdp();
+                            Parcelable uuidList[] = bluetoothDevice.getUuids();
+
+                            if (uuidList != null && uuidList.length > 0) {
+                                UUID uuid = bluetoothDevice.getUuids()[bluetoothDevice.getUuids().length-1].getUuid();
+                                Log.e(TAG, "onReceive: ACTION_PAIRING_REQUEST uuid: " + uuid);
+                                ibtConnected.onBTConnected(uuid.toString());
+                            }
+
+                        }
+                    }*/
+                    break;
+
+
+
+
                 case BluetoothDevice.ACTION_UUID:
 
                     bundle = intent.getExtras();
                     if (bundle != null) {
                         UUID uuid = bundle.getParcelable(BluetoothDevice.EXTRA_UUID);
+
+                        if (uuid != null) {
+                            Log.e(TAG, "onReceive: " + uuid.toString());
+                        }
 
                     }
 
@@ -127,7 +161,7 @@ public class BluetoothEventReceiver extends BroadcastReceiver {
 
                                 val = "BOND_BONDED";
 
-                              //  BluetoothDevice device = bundle.getParcelable(BluetoothDevice.EXTRA_DEVICE);
+                                //  BluetoothDevice device = bundle.getParcelable(BluetoothDevice.EXTRA_DEVICE);
 
                                 /*Log.e(TAG, "onReceive: " + device);
                                 if (device != null && iEstablishChannel != null) {
@@ -138,22 +172,20 @@ public class BluetoothEventReceiver extends BroadcastReceiver {
                                 }*/
 
 
-
-                                bundle = intent.getExtras();
-                                if (bundle != null)
-                                {
+                                /*bundle = intent.getExtras();
+                                if (bundle != null) {
                                     //Parcelable [] device = bundle.getParcelableArray(BluetoothDevice.EXTRA_UUID);
                                     BluetoothDevice device = bundle.getParcelable(BluetoothDevice.EXTRA_DEVICE);
-                                    Log.e(TAG, "onReceive:BOND_BONDED "+device +"  "+ibtConnected );
+                                    Log.e(TAG, "onReceive:BOND_BONDED " + device + "  " + ibtConnected);
+
 
                                     if (device != null && ibtConnected != null) {
                                         device.fetchUuidsWithSdp();
-                                        UUID uuid = device.getUuids()[0].getUuid();
+                                        UUID uuid = device.getUuids()[device.getUuids().length-1].getUuid();
                                         Log.e(TAG, "onReceive: BOND_BONDED uuid: " + uuid);
                                         ibtConnected.onBTConnected(uuid.toString());
                                     }
-                                }
-
+                                }*/
 
 
                                 break;
@@ -168,24 +200,40 @@ public class BluetoothEventReceiver extends BroadcastReceiver {
                 case BluetoothDevice.ACTION_ACL_CONNECTED:
                     Toast.makeText(context, "Connected....", Toast.LENGTH_SHORT).show();
 
-                    bundle = intent.getExtras();
-                    if (bundle != null)
-                    {
-                        Parcelable [] device = bundle.getParcelableArray(BluetoothDevice.EXTRA_UUID);
+                    //bundle = intent.getExtras();
+                   /* if (bundle != null) {
+                        Parcelable[] device = bundle.getParcelableArray(BluetoothDevice.EXTRA_UUID);
 
-                        Log.e(TAG, "onReceive:ACTION_ACL_CONNECTED "+device +"  "+ibtConnected );
+                        Log.e(TAG, "onReceive:ACTION_ACL_CONNECTED " + device + "  " + ibtConnected);
 
                         if (device != null && ibtConnected != null) {
 
 
-                            for(Parcelable p : device)
+                            for (Parcelable p : device)
                             {
-                                Log.e(TAG, "onReceive: "+p.toString() );
+                                Log.e(TAG, "onReceive: " + p.toString());
                             }
 
                             ibtConnected.onBTConnected(device[0].toString());
                         }
+                    }*/
+
+
+                    bundle = intent.getExtras();
+                    if (bundle != null) {
+                        //Parcelable [] device = bundle.getParcelableArray(BluetoothDevice.EXTRA_UUID);
+                        BluetoothDevice device = bundle.getParcelable(BluetoothDevice.EXTRA_DEVICE);
+                        Log.e(TAG, "onReceive:ACTION_ACL_CONNECTED " + device + "  " + ibtConnected);
+
+
+                        if (device != null && ibtConnected != null) {
+                            device.fetchUuidsWithSdp();
+                            UUID uuid = device.getUuids()[device.getUuids().length-1].getUuid();
+                            Log.e(TAG, "onReceive: ACTION_ACL_CONNECTED uuid: " + uuid);
+                            ibtConnected.onBTConnected(uuid.toString());
+                        }
                     }
+
 
 
                     break;

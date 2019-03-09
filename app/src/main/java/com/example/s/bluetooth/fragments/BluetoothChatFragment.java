@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -108,6 +109,7 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
         IntentFilter ConnectedStateintentFilter = new IntentFilter(BluetoothDevice.ACTION_ACL_CONNECTED);
         IntentFilter DisconnectedStateintentFilter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         IntentFilter BondintentFilter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        IntentFilter PairintentFilter = new IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST);
 
         context.registerReceiver(bluetoothEventReceiver, DeviceFoundintentFilter);
         context.registerReceiver(bluetoothEventReceiver, StateintentFilter);
@@ -117,6 +119,7 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
         context.registerReceiver(bluetoothEventReceiver, ConnectedStateintentFilter);
         context.registerReceiver(bluetoothEventReceiver, DisconnectedStateintentFilter);
         context.registerReceiver(bluetoothEventReceiver, BondintentFilter);
+        context.registerReceiver(bluetoothEventReceiver, PairintentFilter);
     }
 
     @Override
@@ -162,9 +165,22 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
         }
 
         if (requestCode == REQUEST_BT_DISCOVERABLE) {
-            if (resultCode == RESULT_OK) {
+           /* if (resultCode > 0) {
+                Log.e(TAG, "onActivityResult: ");
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice("D0:DF:9A:8F:6F:FF");
+                device.fetchUuidsWithSdp();
+                Parcelable uuidList[] = device.getUuids();
 
-            }
+                Log.e(TAG, "onActivityResult: "+uuidList );
+                if (uuidList != null && uuidList.length > 0) {
+
+                    socketServer = new BTSocketServer(bluetoothAdapter, uuidList[uuidList.length - 1].toString());
+                } else {
+                    socketServer = new BTSocketServer(bluetoothAdapter, UUID.randomUUID().toString());
+                }
+
+                socketServer.start();
+            }*/
         }
 
     }
@@ -251,9 +267,8 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
     }
 
     @Override
-    public void onBTConnected(String uuid)
-    {
-        Log.e(TAG, "onBTConnected: "+uuid );
+    public void onBTConnected(String uuid) {
+        Log.e(TAG, "onBTConnected: " + uuid);
         if (uuid != null) {
             socketServer = new BTSocketServer(bluetoothAdapter, uuid);
             socketServer.start();
@@ -265,9 +280,9 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
     @Override
     public void onBTDisConnected() {
 
-        if (socketServer != null && socketServer.isAlive())
-        {
+        if (socketServer != null && socketServer.isAlive()) {
             socketServer.cancel();
+            socketServer = null;
         }
     }
 }

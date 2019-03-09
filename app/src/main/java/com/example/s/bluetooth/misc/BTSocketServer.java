@@ -14,29 +14,28 @@ public class BTSocketServer extends Thread {
     private BluetoothServerSocket serverSocket;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothSocket socket;
-    private static final String NAME = "ABCD";
-    private BluetoothDevice device;
+    private static final String NAME = "XYZ";
     private UUID uuid;
 
     public BTSocketServer(BluetoothAdapter bluetoothAdapter, String uuid) {
         super(TAG);
         this.bluetoothAdapter = bluetoothAdapter;
-        this.uuid = UUID.fromString(uuid);
 
 
-        if (serverSocket == null) {
             try {
                 Log.e(TAG, "BTSocketServer: " + uuid);
+                this.uuid = UUID.fromString(uuid);
+                Log.e(TAG, "BTSocketServer: randomUUID :-" + this.uuid);
                 serverSocket = this.bluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, this.uuid);
 
-                Log.e(TAG, "BTSocketServer: "+serverSocket );
+                Log.e(TAG, "BTSocketServer: " + serverSocket);
 
             } catch (IOException e) {
-                Log.e(TAG, "run: " + e.getMessage());
+                Log.e(TAG, "BTSocketServer: " + e.getMessage());
                 e.printStackTrace();
                 cancel();
             }
-        }
+
 
     }
 
@@ -45,21 +44,22 @@ public class BTSocketServer extends Thread {
     public void run() {
 
         if (serverSocket != null) {
-           while (socket==null)
-           {
-               try {
+            while (socket == null) {
+                try {
+                    socket = serverSocket.accept();
+                    break;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Log.e(TAG, "run: " + e.getMessage());
 
+                    cancel();
+                    if (socket == null) {
+                        break;
+                    }
 
-                   socket=serverSocket.accept();
-                   break;
-               } catch (IOException e)
-               {
-                   e.printStackTrace();
-                   Log.e(TAG, "run: "+e.getMessage() );
-                   cancel(); break;
-               }
+                }
 
-           }
+            }
         }
 
 
@@ -73,7 +73,7 @@ public class BTSocketServer extends Thread {
 
     public void cancel() {
 
-        Log.e(TAG, "cancel: "+socket  +" " +serverSocket);
+        Log.e(TAG, "cancel: " + socket + " " + serverSocket);
 
         if (socket != null) {
             try {
