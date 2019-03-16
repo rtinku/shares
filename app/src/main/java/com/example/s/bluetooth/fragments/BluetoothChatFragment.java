@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -24,11 +23,11 @@ import android.widget.Toast;
 import com.example.s.bluetooth.R;
 import com.example.s.bluetooth.activities.MainActivity;
 import com.example.s.bluetooth.adapters.CustomAdapter;
+import com.example.s.bluetooth.misc.BTCommunication;
 import com.example.s.bluetooth.misc.BTSocketServer;
 import com.example.s.bluetooth.receivers.BluetoothEventReceiver;
 
 import java.util.ArrayList;
-import java.util.UUID;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -39,7 +38,9 @@ import static android.app.Activity.RESULT_OK;
  */
 public class BluetoothChatFragment extends Fragment implements MainActivity.ICommunicateWithFragment,
         BluetoothEventReceiver.IFoundedBTDevices, BluetoothEventReceiver.IBTDevicesState,
-        BluetoothEventReceiver.IEstablishChannel, BluetoothEventReceiver.IBTDisConnected, BluetoothEventReceiver.IBTConnected {
+        BluetoothEventReceiver.IEstablishChannel, BluetoothEventReceiver.IBTDisConnected,
+        BluetoothEventReceiver.IBTConnected, View.OnClickListener/*,
+        BTCommunication.IBTMessage*/ {
 
     private static final String TAG = "BluetoothChatFragment";
 
@@ -49,12 +50,15 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
     private RecyclerView rvDeviceList;
     private Context context;
 
-    private static int REQUEST_EANABLE_BT = 1;
-    private static int REQUEST_BT_DISCOVERABLE = 2;
+    private static int REQUEST_EANABLE_BT = 100;
+    private static int REQUEST_BT_DISCOVERABLE = 200;
 
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothEventReceiver bluetoothEventReceiver;
     private BTSocketServer socketServer;
+
+    private ArrayList<BluetoothDevice> bluetoothDeviceArrayList;
+    private CustomAdapter customAdapter;
 
     public BluetoothChatFragment() {
         // Required empty public constructor
@@ -72,6 +76,10 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        bluetoothDeviceArrayList = new ArrayList<>();
+        customAdapter = new CustomAdapter(context, bluetoothDeviceArrayList);
+
 
         // get bluetooth adapter
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -109,7 +117,7 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
         IntentFilter ConnectedStateintentFilter = new IntentFilter(BluetoothDevice.ACTION_ACL_CONNECTED);
         IntentFilter DisconnectedStateintentFilter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         IntentFilter BondintentFilter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-        IntentFilter PairintentFilter = new IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST);
+        //  IntentFilter PairintentFilter = new IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST);
 
         context.registerReceiver(bluetoothEventReceiver, DeviceFoundintentFilter);
         context.registerReceiver(bluetoothEventReceiver, StateintentFilter);
@@ -119,7 +127,7 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
         context.registerReceiver(bluetoothEventReceiver, ConnectedStateintentFilter);
         context.registerReceiver(bluetoothEventReceiver, DisconnectedStateintentFilter);
         context.registerReceiver(bluetoothEventReceiver, BondintentFilter);
-        context.registerReceiver(bluetoothEventReceiver, PairintentFilter);
+        //  context.registerReceiver(bluetoothEventReceiver, PairintentFilter);
     }
 
     @Override
@@ -134,6 +142,7 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         initViews(view);
+        setListeners();
     }
 
     @Override
@@ -165,6 +174,17 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
         }
 
         if (requestCode == REQUEST_BT_DISCOVERABLE) {
+
+
+            if (socketServer != null && socketServer.isAlive()) {
+                socketServer.cancel();
+                socketServer.interrupt();
+            }
+
+
+            socketServer = new BTSocketServer(bluetoothAdapter);
+            socketServer.start();
+
            /* if (resultCode > 0) {
                 Log.e(TAG, "onActivityResult: ");
                 BluetoothDevice device = bluetoothAdapter.getRemoteDevice("D0:DF:9A:8F:6F:FF");
@@ -192,6 +212,15 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
         etMessage = view.findViewById(R.id.et_message);
         btnSend = view.findViewById(R.id.button_send);
         rvDeviceList = view.findViewById(R.id.rv_device_list);
+
+        rvDeviceList.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
+        rvDeviceList.setAdapter(customAdapter);
+
+    }
+
+
+    private void setListeners() {
+        btnSend.setOnClickListener(this);
     }
 
 
@@ -216,26 +245,20 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
 
                 if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
                     Intent BTDiscoveralbe = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-                    BTDiscoveralbe.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+                    BTDiscoveralbe.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
                     startActivityForResult(BTDiscoveralbe, REQUEST_BT_DISCOVERABLE);
                 }
 
                 break;
         }
+
+
     }
 
     @Override
-    public void onFoundBTDevices(ArrayList<BluetoothDevice> bluetoothDeviceArrayList) {
-        Log.e(TAG, "onFoundBTDevices: " + bluetoothDeviceArrayList.size());
-
-        if (bluetoothDeviceArrayList.size() > 0) {
-            CustomAdapter customAdapter = new CustomAdapter(context, bluetoothDeviceArrayList);
-            rvDeviceList.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
-            rvDeviceList.setAdapter(customAdapter);
-
-        }
-
-
+    public void onFoundBTDevices(BluetoothDevice bluetoothDevice) {
+        bluetoothDeviceArrayList.add(bluetoothDevice);
+        customAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -255,6 +278,7 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
                     Log.e(TAG, "onBTDevicesState: " + socketServer.isAlive());
                     Toast.makeText(context, "Service Stop Successfully..." + socketServer.isAlive(), Toast.LENGTH_SHORT).show();
                     socketServer.cancel();
+                    customAdapter.closeBluetoothSocket();
                 }
 
                 break;
@@ -269,12 +293,7 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
     @Override
     public void onBTConnected(String uuid) {
         Log.e(TAG, "onBTConnected: " + uuid);
-        if (uuid != null) {
-            socketServer = new BTSocketServer(bluetoothAdapter, uuid);
-            socketServer.start();
-        } else {
-            Log.e(TAG, "onBTConnected: not run");
-        }
+
     }
 
     @Override
@@ -285,4 +304,31 @@ public class BluetoothChatFragment extends Fragment implements MainActivity.ICom
             socketServer = null;
         }
     }
+
+    @Override
+    public void onClick(View v) {
+        String msg = etMessage.getText().toString();
+
+        if (!msg.isEmpty()) {
+            if (socketServer != null) {
+                socketServer.write(msg.getBytes());
+
+            } else {
+
+                Log.e(TAG, "onClick: message send by client" );
+                customAdapter.write(msg);
+            }
+
+        } else {
+            Toast.makeText(context, "Empty Can't Send.....", Toast.LENGTH_SHORT).show();
+        }
+
+
+    }
+
+   /* @Override
+    public void onMessage(String message)
+    {
+
+    }*/
 }

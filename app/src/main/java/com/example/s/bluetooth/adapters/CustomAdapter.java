@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.example.s.bluetooth.R;
+import com.example.s.bluetooth.misc.BTClient;
 
 import java.util.ArrayList;
 
@@ -17,6 +18,7 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.Holder> {
 
     private ArrayList<BluetoothDevice> bluetoothDeviceArrayList;
     private Context context;
+    private BTClient btClient;
 
     public CustomAdapter(Context context, ArrayList<BluetoothDevice> bluetoothDeviceArrayList) {
         this.bluetoothDeviceArrayList = bluetoothDeviceArrayList;
@@ -46,12 +48,40 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.Holder> {
         return bluetoothDeviceArrayList.size();
     }
 
-    public class Holder extends RecyclerView.ViewHolder {
+
+    public class Holder extends RecyclerView.ViewHolder implements View.OnClickListener {
         private TextView textView;
 
         public Holder(@NonNull View itemView) {
             super(itemView);
             textView = itemView.findViewById(android.R.id.text1);
+            textView.setOnClickListener(this);
         }
+
+        @Override
+        public void onClick(View v) {
+
+            if (bluetoothDeviceArrayList.size() > 0) {
+
+                if (btClient != null && btClient.isAlive()) {
+                    btClient.interrupt();
+                    btClient.cancel();
+
+                }
+
+                btClient = new BTClient(bluetoothDeviceArrayList.get(getAdapterPosition()));
+                btClient.start();
+            }
+        }
+    }
+
+
+    public void write(String msg) {
+        if (btClient != null)
+            btClient.write(msg.getBytes());
+    }
+
+    public void closeBluetoothSocket() {
+        btClient.cancel();
     }
 }
