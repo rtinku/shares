@@ -1,0 +1,9 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.google.samples.apps.adssched",
+    "sha256_cert_fingerprints":
+    ["B5:8C:F2:AE:89:9F:57:B0:6E:C3:85:73:9E:CA:D6:D8:DE:B0:67:59:54:F3:D9:77:74:63:88:F0:84:A7:7D:91"]
+  }
+}]
